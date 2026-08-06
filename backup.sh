@@ -77,7 +77,7 @@ function rsync_run ()
 
 	echo ''
 	echo '[deleting old backups]'
-	echo $(find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "current" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv)
+	find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "current" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv
 
 	# ===== ===== ===== dry-run ===== ===== =====
 
@@ -124,11 +124,11 @@ function rsync_run ()
 
 	echo ''
 	echo '[rsync]'
-	echo $(rsync --stats --archive --delete --numeric-ids --delete-excluded \
+	rsync --stats --archive --delete --numeric-ids --delete-excluded \
 		--rsh='/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru' \
 		--exclude="${EXCLUDE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
-		"${current_path}")
+		"${current_path}"
 
 	cp -al "${current_path}" "${named_path}"
 
@@ -138,20 +138,25 @@ function rsync_run ()
 	echo '[rsnapshot-diff]'
 
 	local last_backup_path=$(find "${internal_path}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2- | head -n 3 | tail -n 1)
-	local differences='-- empty --'
 
 	if [[ -n "${last_backup_path}" && "${last_backup_path}" != "${named_path}" ]];
 	then
-		local diff=$(rsnapshot-diff -v "${last_backup_path}" "${named_path}")
-		local processed_changes=$(get_changes "${diff}")
+		local differences=$(rsnapshot-diff -v "${last_backup_path}" "${named_path}")
+		local processed_changes=$(get_changes "${differences}")
 
 		echo "last_backup_path: ${last_backup_path}"
 		echo "named_path: ${named_path}"
 
-		printf "%s\n\n===== ===== ===== rsnapshot-diff ===== ===== =====\n\n%s" "${processed_changes}" "${diff}" > "${named_path}.diff"
+		{
+			echo "last_backup_path: ${last_backup_path}"
+			echo "named_path: ${named_path}"
+
+			printf "\n\n===== ===== ===== diff ===== ===== =====\n\n%s" "${processed_changes}"
+			printf "\n\n===== ===== ===== rsnapshot-diff ===== ===== =====\n\n%s" "${differences}"
+		} > "${named_path}.diff"
 	else
-		echo 'tree ${named_path}'
-		tree "${named_path}" > "${named_path}.diff"
+		echo '-- empty --'
+		echo "${named_path}" > "${named_path}.init"
 	fi
 }
 
