@@ -1,5 +1,6 @@
 #!/bin/bash
 
+EXCLUDE_PATTERNS='??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????*'
 COPIES_PATH='/mnt/backup/copies'
 SHELF_LIFE=180 # срок хранения
 
@@ -37,10 +38,28 @@ function get_changes ()
 	' <<< "$1"
 }
 
+function get_excluded ()
+{
+	local remote_ssh="$1" # удаленный ssh
+	local external_path="$2" # внешний путь
+
+	/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru "${remote_ssh}" \
+		"find ${external_path} -printf '%P\n' | \
+		LC_ALL=C awk -F'/' '{
+			for(i=1;i<=NF;i++) {
+				if(length(\$i) > 255) {
+					print length(\$i) \" символов => \" \$0
+					break
+				}
+			}
+		}'"
+}
+
 function rsync_run ()
 {
-	local internal_path="$1" # внутренний путь
+	local remote_ssh="$1" # удаленный ssh
 	local external_path="$2" # внешний путь
+	local internal_path="$3" # внутренний путь
 
 	mkdir -p "${internal_path}"
 
@@ -50,14 +69,22 @@ function rsync_run ()
 	echo ''
 	echo '----- ----- ----- ----- -----'
 	echo ''
-	echo "internal_path: ${internal_path}"
+	echo "remote_ssh: ${remote_ssh}"
 	echo "external_path: ${external_path}"
+	echo "internal_path: ${internal_path}"
 
 	# ===== ===== ===== deleting old backups ===== ===== =====
 
 	echo ''
 	echo '[deleting old backups]'
 	echo $(find "${internal_path}" -mindepth 1 -maxdepth 1 -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv)
+
+	# ===== ===== ===== excluded ===== ===== =====
+
+	echo ''
+	echo '[excluded]'
+
+	get_excluded "${remote_ssh}" "${external_path}" > "${named_path}.excluded"
 
 	# ===== ===== ===== dry-run ===== ===== =====
 
@@ -66,7 +93,8 @@ function rsync_run ()
 
 	local dry_run=$(rsync --dry-run --itemize-changes --archive --delete --numeric-ids --delete-excluded \
 		--rsh='/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru' \
-		"${external_path}" \
+		--exclude="${EXCLUDE_PATTERNS}" \
+		"${remote_ssh}:${external_path}" \
 		"${current_path}" | head -n 5)
 
 	if [[ -z "${dry_run}" ]];
@@ -83,7 +111,8 @@ function rsync_run ()
 	echo '[rsync]'
 	echo $(rsync --stats --archive --delete --numeric-ids --delete-excluded \
 		--rsh='/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru' \
-		"${external_path}" \
+		--exclude="${EXCLUDE_PATTERNS}" \
+		"${remote_ssh}:${external_path}" \
 		"${current_path}")
 
 	cp -al "${current_path}" "${named_path}"
@@ -116,8 +145,8 @@ echo '===== ===== ===== ===== ===== ====='
 echo ''
 echo "STARTED: $(date '+%Y-%m-%d %H:%M:%S')"
 
-rsync_run "${COPIES_PATH}/storage" 'koren-backup@koren2.ru:/media/koren/server/storage/'
-# rsync_run "${COPIES_PATH}/backup_check" 'koren-backup@koren2.ru:~/backup_check'
+rsync_run 'koren-backup@koren2.ru' '/media/koren/server/storage/' "${COPIES_PATH}/storage"
+# rsync_run 'koren-backup@koren2.ru' '~/backup_check' "${COPIES_PATH}/backup_check"
 
 echo ''
 echo '----- ----- ----- ----- -----'
