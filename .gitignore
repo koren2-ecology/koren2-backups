@@ -1,3 +1,7 @@
 /.idea
+
 /copies/*
+!/copies/.gitkeep
+
 /logs/*
+!/logs/.gitkeep
