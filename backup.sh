@@ -94,7 +94,8 @@ function rsync_run ()
 
 	local dry_run_status=$?
 
-	if [[ ${dry_run_status} -ne 0 ]]; then
+	if [[ ${dry_run_status} -ne 0 ]];
+	then
 		echo "ERROR: rsync dry-run failed with exit code ${dry_run_status}!" >&2
 		echo "Details: ${dry_run}" >&2
 		return ${dry_run_status}
@@ -103,7 +104,8 @@ function rsync_run ()
 	local dry_run_short
 	dry_run_short=$(echo "${dry_run}" | head -n 5)
 
-	if [[ -z "${dry_run_short}" ]]; then
+	if [[ -z "${dry_run_short}" ]];
+	then
 		echo 'no changes'
 		return
 	fi
