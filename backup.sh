@@ -91,19 +91,30 @@ function rsync_run ()
 	echo ''
 	echo '[rsync dry-run]'
 
-	local dry_run=$(rsync --dry-run --itemize-changes --archive --delete --numeric-ids --delete-excluded \
+	local dry_run
+	dry_run=$(rsync --dry-run --itemize-changes --archive --delete --numeric-ids --delete-excluded \
 		--rsh='/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru' \
 		--exclude="${EXCLUDE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
-		"${current_path}" | head -n 5)
+		"${current_path}" 2>&1) # 2>&1 перенаправляет ошибки в переменную, чтобы dry_run не был пустым при падении
 
-	if [[ -z "${dry_run}" ]];
-	then
+	local dry_run_status=$?
+
+	if [[ ${dry_run_status} -ne 0 ]]; then
+		echo "ERROR: rsync dry-run failed with exit code ${dry_run_status}!" >&2
+		echo "Details: ${dry_run}" >&2
+		return ${dry_run_status}
+	fi
+
+	local dry_run_short
+	dry_run_short=$(echo "${dry_run}" | head -n 5)
+
+	if [[ -z "${dry_run_short}" ]]; then
 		echo 'no changes'
 		return
 	fi
 
-	echo "${dry_run}"
+	echo "${dry_run_short}"
 
 	# ===== ===== ===== sync ===== ===== =====
 
