@@ -79,13 +79,6 @@ function rsync_run ()
 	echo '[deleting old backups]'
 	echo $(find "${internal_path}" -mindepth 1 -maxdepth 1 -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv)
 
-	# ===== ===== ===== excluded ===== ===== =====
-
-	echo ''
-	echo '[excluded]'
-
-	get_excluded "${remote_ssh}" "${external_path}" > "${named_path}.excluded"
-
 	# ===== ===== ===== dry-run ===== ===== =====
 
 	echo ''
@@ -115,6 +108,17 @@ function rsync_run ()
 	fi
 
 	echo "${dry_run_short}"
+
+	# ===== ===== ===== excluded ===== ===== =====
+
+	echo ''
+	echo '[excluded]'
+
+	local excluded
+	excluded=$(get_excluded "${remote_ssh}" "${external_path}")
+
+	echo "${excluded}" > "${named_path}.excluded"
+	echo "${excluded}"
 
 	# ===== ===== ===== sync ===== ===== =====
 
