@@ -64,7 +64,8 @@ function rsync_run ()
 	mkdir -p "${internal_path}"
 
 	local current_path="${internal_path}/current"
-	local named_path="${internal_path}/$(date +%Y-%m-%d_%H-%M-%S)"
+	local named_path
+	named_path="${internal_path}/$(date +%Y-%m-%d_%H-%M-%S)"
 
 	echo ''
 	echo '----- ----- ----- ----- -----'
@@ -137,12 +138,16 @@ function rsync_run ()
 	echo ''
 	echo '[rsnapshot-diff]'
 
-	local last_backup_path=$(find "${internal_path}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2- | head -n 3 | tail -n 1)
+	local last_backup_path
+	last_backup_path=$(find "${internal_path}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2- | head -n 3 | tail -n 1)
 
 	if [[ -n "${last_backup_path}" && "${last_backup_path}" != "${named_path}" ]];
 	then
-		local differences=$(rsnapshot-diff -v "${last_backup_path}" "${named_path}")
-		local processed_changes=$(get_changes "${differences}")
+		local differences
+		differences=$(rsnapshot-diff -v "${last_backup_path}" "${named_path}")
+
+		local processed_changes
+		processed_changes=$(get_changes "${differences}")
 
 		echo "last_backup_path: ${last_backup_path}"
 		echo "named_path: ${named_path}"
