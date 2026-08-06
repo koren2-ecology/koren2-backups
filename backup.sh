@@ -77,7 +77,7 @@ function rsync_run ()
 
 	echo ''
 	echo '[deleting old backups]'
-	echo $(find "${internal_path}" -mindepth 1 -maxdepth 1 -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv)
+	echo $(find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "current" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv)
 
 	# ===== ===== ===== dry-run ===== ===== =====
 
