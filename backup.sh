@@ -1,6 +1,8 @@
 #!/bin/bash
 
 COPIES_PATH='/mnt/backup/copies'
+SHELF_LIFE=180 # срок хранения
+
 
 function get_changes ()
 {
@@ -55,7 +57,7 @@ function rsync_run ()
 
 	echo ''
 	echo '[deleting old backups]'
-	echo $(find "${internal_path}" -mindepth 1 -maxdepth 1 -mtime +180 -prune -print0 | xargs -0 rm -rfv)
+	echo $(find "${internal_path}" -mindepth 1 -maxdepth 1 -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv)
 
 	# ===== ===== ===== dry-run ===== ===== =====
 
