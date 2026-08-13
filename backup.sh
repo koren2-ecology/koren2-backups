@@ -14,7 +14,7 @@ function get_changes ()
 		path = substr($0, 3)      # Получаем путь, отсекая знак и пробел
 
 		# sub(/[[:space:]]+$/, "", path)
-		sub(/check\/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\//, "", path)
+		sub(/\/[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\//, "/<DATETIME>/", path)
 
 		if (action == "+") plus[path] = 1
 		if (action == "-") minus[path] = 1
