@@ -1,0 +1,10 @@
+[Unit]
+Description=Резервное копирование КОРЭН-2 в 03:05 (страховка, если машина не спала)
+
+[Timer]
+OnCalendar=*-*-* 03:05:00
+AccuracySec=1s
+Unit=koren2_backup.service
+
+[Install]
+WantedBy=timers.target

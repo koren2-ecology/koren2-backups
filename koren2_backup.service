@@ -1,0 +1,12 @@
+[Unit]
+Description=Резервное копирование КОРЭН-2
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/backup
+
+[Service]
+Type=oneshot
+ExecStart=/mnt/backup/run.sh
+
+[Install]
+WantedBy=multi-user.target
