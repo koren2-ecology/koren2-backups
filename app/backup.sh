@@ -24,11 +24,13 @@ function rsync_run ()
 	local external_path="$3" # внешний путь
 	local internal_path="$4" # внутренний путь
 
-	mkdir -p "${internal_path}"
+	local latest_image_path="${COPIES_PATH}/latest/image"
+	local date time
+	read -r date time <<< "$(date '+%F %T')"
+	local date_path="${internal_path}/${date}_${time//:/-}"
+	local date_image_path="${date_path}/image"
 
-	local current_path="${internal_path}/current"
-	local named_path
-	named_path="${internal_path}/$(date +%Y-%m-%d_%H-%M-%S)"
+	mkdir -p "${latest_image_path}"
 
 	echo ''
 	echo '----- ----- ----- ----- -----'
@@ -41,7 +43,7 @@ function rsync_run ()
 
 	echo ''
 	echo '[deleting old backups]'
-	find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "current" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv
+	find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "latest" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv
 
 	# ===== ===== ===== dry-run ===== ===== =====
 
@@ -53,7 +55,7 @@ function rsync_run ()
 		--rsh="/usr/bin/ssh -i ${remote_key}" \
 		--exclude="${IGNORE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
-		"${current_path}" 2>&1) # 2>&1 перенаправляет ошибки в переменную, чтобы dry_run не был пустым при падении
+		"${latest_image_path}" 2>&1) # 2>&1 перенаправляет ошибки в переменную, чтобы dry_run не был пустым при падении
 
 	local dry_run_status=$?
 
@@ -78,10 +80,12 @@ function rsync_run ()
 	echo ''
 	echo '[ignored]'
 
+	mkdir -p "${date_image_path}"
+
 	local ignored
 	ignored=$(get_ignored "${remote_ssh}" "${remote_key}" "${external_path}")
 
-	echo "${ignored}" > "${named_path}.ignored"
+	echo "${ignored}" > "${date_path}/ignored.txt"
 	echo "${ignored}"
 
 	# ===== ===== ===== sync ===== ===== =====
@@ -92,40 +96,49 @@ function rsync_run ()
 		--rsh="/usr/bin/ssh -i ${remote_key}" \
 		--exclude="${IGNORE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
-		"${current_path}"
+		"${latest_image_path}"
 
-	cp -al "${current_path}" "${named_path}"
+	cp -al "${latest_image_path}/." "${date_image_path}"
 
 	# ===== ===== ===== rsnapshot-diff ===== ===== =====
 
 	echo ''
 	echo '[rsnapshot-diff]'
 
-	local last_backup_path
-	last_backup_path=$(find "${internal_path}" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2- | head -n 3 | tail -n 1)
+	local previous_path
+	previous_path=$(find "${internal_path}" -mindepth 1 -maxdepth 1 -type d -name '????-??-??_??-??-??' ! -path "${date_path}" | sort | tail -n 1)
 
-	if [[ -n "${last_backup_path}" && "${last_backup_path}" != "${named_path}" ]];
+	if [[ -n "${previous_path}" ]];
 	then
-		local differences
-		differences=$(rsnapshot-diff -v "${last_backup_path}" "${named_path}")
+		echo "previous_path: ${previous_path}"
+		echo "date_path: ${date_path}"
 
-		local processed_changes
-		processed_changes=$(get_changes "${differences}")
+		local previous_image_path="${previous_path}/image"
 
-		echo "last_backup_path: ${last_backup_path}"
-		echo "named_path: ${named_path}"
+		local rsnapshot_diff
+		rsnapshot_diff=$(rsnapshot-diff -v "${previous_image_path}" "${date_image_path}")
 
-		{
-			echo "last_backup_path: ${last_backup_path}"
-			echo "named_path: ${named_path}"
-
-			printf "\n\n===== ===== ===== diff ===== ===== =====\n\n%s" "${processed_changes}"
-			printf "\n\n===== ===== ===== rsnapshot-diff ===== ===== =====\n\n%s" "${differences}"
-		} > "${named_path}.diff"
+		echo "${rsnapshot_diff}" > "${date_path}/rsnapshot.diff"
+		get_changes "${rsnapshot_diff}" > "${date_path}/changed.diff"
 	else
 		echo '-- empty --'
-		echo "${named_path}" > "${named_path}.init"
 	fi
+
+	# ===== ===== ===== config ===== ===== =====
+
+	echo ''
+	echo '[config]'
+
+	{
+		echo '[backup]'
+		echo "date = ${date}"
+		echo "time = ${time}"
+		echo "remote_ssh = ${remote_ssh}"
+		echo "remote_key = ${remote_key}"
+		echo "external_path = ${external_path}"
+		echo "previous_path = ${previous_path}"
+		echo "max_name_bytes = ${MAX_NAME_BYTES}"
+	} | tee "${date_path}/config.ini"
 }
 
 echo ''

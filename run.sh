@@ -3,7 +3,7 @@
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
 
 LOCK_FILE='/run/koren2_backup.lock'
-STAMP_FILE='logs/.last-backup-date'
+STAMP_FILE='copies/latest/date_last_backup.txt'
 
 
 # ===== ===== ===== процесс ===== ===== =====
