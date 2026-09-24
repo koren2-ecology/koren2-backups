@@ -40,53 +40,32 @@ function rsync_run ()
 	echo "external_path: ${external_path}"
 	echo "internal_path: ${internal_path}"
 
-	# ===== ===== ===== dry-run ===== ===== =====
-
-	echo ''
-	echo '[rsync dry-run]'
-
-	local dry_run
-	dry_run=$(rsync --dry-run --itemize-changes --archive --delete --numeric-ids --delete-excluded \
-		--rsh="/usr/bin/ssh -i ${remote_key}" \
-		--exclude="${IGNORE_PATTERNS}" \
-		"${remote_ssh}:${external_path}" \
-		"${latest_image_path}" 2>&1) # 2>&1 перенаправляет ошибки в переменную, чтобы dry_run не был пустым при падении
-
-	local dry_run_status=$?
-
-	if [[ ${dry_run_status} -ne 0 ]]; then
-		echo "ERROR: rsync dry-run failed with exit code ${dry_run_status}!" >&2
-		echo "Details: ${dry_run}" >&2
-		return ${dry_run_status}
-	fi
-
-	local dry_run_short
-	dry_run_short=$(echo "${dry_run}" | head -n 5)
-
-	if [[ -z "${dry_run_short}" ]]; then
-		echo 'no changes'
-		return
-	fi
-
-	echo "${dry_run_short}"
-
 	# ===== ===== ===== sync ===== ===== =====
 
 	echo ''
 	echo '[rsync]'
-	rsync --stats --archive --delete --numeric-ids --delete-excluded \
+
+	local stats
+	stats=$(rsync --stats --human-readable --human-readable --archive --delete --numeric-ids --delete-excluded \
 		--rsh="/usr/bin/ssh -i ${remote_key}" \
 		--exclude="${IGNORE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
-		"${latest_image_path}"
+		"${latest_image_path}")
 
 	local rsync_status=$?
+
+	echo "${stats}"
 
 	if [[ ${rsync_status} -eq 0 ]]; then
 		echo "${date}" > "${STAMP_FILE}"
 		echo "date_last_backup: ${date}"
 	else
 		echo "ERROR: rsync failed with exit code ${rsync_status}!" >&2
+	fi
+
+	if ! grep -qE '^Number of (created|deleted|regular files transferred): [1-9]' <<< "${stats}"; then
+		echo 'no changes'
+		return
 	fi
 
 	mkdir -p "${date_image_path}"
