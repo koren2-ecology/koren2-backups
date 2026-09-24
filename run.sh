@@ -30,7 +30,7 @@ fi
 # Будильник взводится всегда и до копирования: даже если копирование
 # упадёт, машина всё равно проснётся в следующую ночь.
 # Оттуда же приходит BACKUP_HOUR.
-source wakealarm.sh
+source app/wakealarm.sh
 
 if [[ ${FORCED} == 'no' && $(date +%H) != "${BACKUP_HOUR}" ]];
 then

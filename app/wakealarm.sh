@@ -8,14 +8,14 @@ WAKEALARM='/sys/class/rtc/rtc0/wakealarm'
 
 function set_wakealarm ()
 {
-	local target
-	target=$(date +%s -d "tomorrow ${BACKUP_HOUR}:00")
-
 	if [[ ! -w ${WAKEALARM} ]];
 	then
 		echo "ОШИБКА: ${WAKEALARM} недоступен для записи." >&2
 		return 1
 	fi
+
+	local target
+	target=$(date +%s -d "tomorrow ${BACKUP_HOUR}:00")
 
 	# Будильник одноразовый: сгорает при срабатывании и не переписывается
 	# поверх взведённого, поэтому сначала сброс, потом новое значение.
