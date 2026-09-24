@@ -1,6 +1,11 @@
 #!/bin/bash
 
-cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" || exit 1
+SELF_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+APP_PATH="$(dirname "${SELF_PATH}")"
+ROOT_PATH="$(dirname "${APP_PATH}")"
+
+cd "${ROOT_PATH}" || exit 1
+
 
 MAX_NAME_BYTES=256 # ext4 держит имя до 255 байт включительно, режем только то, что длиннее
 EXCLUDE_PATTERNS="$(printf '?%.0s' $(seq 1 ${MAX_NAME_BYTES}))*"
@@ -9,8 +14,7 @@ SHELF_LIFE=180 # срок хранения
 REMOTE_SSH='koren-backup@koren2.ru'
 REMOTE_KEY='/home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru'
 
-
-source app/get_changes.sh
+source "${APP_PATH}/get_changes.sh"
 
 function get_excluded ()
 {

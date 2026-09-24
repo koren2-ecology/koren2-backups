@@ -50,7 +50,7 @@ fi
 
 mkdir -p logs
 
-source backup.sh >> "logs/$(date +%Y-%m-%d_%H-%M-%S).log" 2>&1
+source app/backup.sh >> "logs/$(date +%Y-%m-%d_%H-%M-%S).log" 2>&1
 
 echo "${TODAY}" > "${STAMP_FILE}"
 
