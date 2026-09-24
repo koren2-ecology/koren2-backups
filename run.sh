@@ -3,7 +3,6 @@
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
 
 LOCK_FILE='/run/koren2_backup.lock'
-STAMP_FILE='copies/latest/date_last_backup.txt'
 
 
 # ===== ===== ===== процесс ===== ===== =====
@@ -38,21 +37,11 @@ then
 	exit 0
 fi
 
-TODAY=$(date +%F)
-
-if [[ ${FORCED} == 'no' && $(cat "${STAMP_FILE}" 2>/dev/null) == "${TODAY}" ]];
-then
-	echo "Копирование за ${TODAY} уже выполнено, повтор пропущен."
-	exit 0
-fi
-
 # ===== ===== ===== копирование ===== ===== =====
 
 mkdir -p logs
 
 source app/backup.sh >> "logs/$(date +%Y-%m-%d_%H-%M-%S).log" 2>&1
-
-echo "${TODAY}" > "${STAMP_FILE}"
 
 if [[ ${FORCED} == 'yes' ]];
 then

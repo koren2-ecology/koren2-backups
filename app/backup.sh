@@ -10,6 +10,7 @@ cd "${ROOT_PATH}" || exit 1
 MAX_NAME_BYTES=256 # ext4 держит имя до 255 байт включительно, режем только то, что длиннее
 IGNORE_PATTERNS="$(printf '?%.0s' $(seq 1 ${MAX_NAME_BYTES}))*"
 COPIES_PATH='copies'
+STAMP_FILE="${COPIES_PATH}/latest/date_last_backup.txt"
 SHELF_LIFE=180 # срок хранения
 REMOTE_SSH='koren-backup@koren2.ru'
 REMOTE_KEY='/home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru'
@@ -78,6 +79,15 @@ function rsync_run ()
 		--exclude="${IGNORE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
 		"${latest_image_path}"
+
+	local rsync_status=$?
+
+	if [[ ${rsync_status} -eq 0 ]]; then
+		echo "${date}" > "${STAMP_FILE}"
+		echo "date_last_backup: ${date}"
+	else
+		echo "ERROR: rsync failed with exit code ${rsync_status}!" >&2
+	fi
 
 	mkdir -p "${date_image_path}"
 	cp -al "${latest_image_path}/." "${date_image_path}"
