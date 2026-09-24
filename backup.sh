@@ -6,6 +6,8 @@ MAX_NAME_BYTES=256 # ext4 держит имя до 255 байт включите
 EXCLUDE_PATTERNS="$(printf '?%.0s' $(seq 1 ${MAX_NAME_BYTES}))*"
 COPIES_PATH='copies'
 SHELF_LIFE=180 # срок хранения
+REMOTE_SSH='koren-backup@koren2.ru'
+REMOTE_KEY='/home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru'
 
 
 function get_changes ()
@@ -44,9 +46,10 @@ function get_changes ()
 function get_excluded ()
 {
 	local remote_ssh="$1" # удаленный ssh
-	local external_path="$2" # внешний путь
+	local remote_key="$2" # ключ ssh
+	local external_path="$3" # внешний путь
 
-	/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru "${remote_ssh}" \
+	/usr/bin/ssh -i "${remote_key}" "${remote_ssh}" \
 		"find ${external_path} -printf '%P\n' | \
 		LC_ALL=C awk -F'/' '{
 			for(i=1;i<=NF;i++) {
@@ -61,8 +64,9 @@ function get_excluded ()
 function rsync_run ()
 {
 	local remote_ssh="$1" # удаленный ssh
-	local external_path="$2" # внешний путь
-	local internal_path="$3" # внутренний путь
+	local remote_key="$2" # ключ ssh
+	local external_path="$3" # внешний путь
+	local internal_path="$4" # внутренний путь
 
 	mkdir -p "${internal_path}"
 
@@ -90,7 +94,7 @@ function rsync_run ()
 
 	local dry_run
 	dry_run=$(rsync --dry-run --itemize-changes --archive --delete --numeric-ids --delete-excluded \
-		--rsh='/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru' \
+		--rsh="/usr/bin/ssh -i ${remote_key}" \
 		--exclude="${EXCLUDE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
 		"${current_path}" 2>&1) # 2>&1 перенаправляет ошибки в переменную, чтобы dry_run не был пустым при падении
@@ -119,7 +123,7 @@ function rsync_run ()
 	echo '[excluded]'
 
 	local excluded
-	excluded=$(get_excluded "${remote_ssh}" "${external_path}")
+	excluded=$(get_excluded "${remote_ssh}" "${remote_key}" "${external_path}")
 
 	echo "${excluded}" > "${named_path}.excluded"
 	echo "${excluded}"
@@ -129,7 +133,7 @@ function rsync_run ()
 	echo ''
 	echo '[rsync]'
 	rsync --stats --archive --delete --numeric-ids --delete-excluded \
-		--rsh='/usr/bin/ssh -i /home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru' \
+		--rsh="/usr/bin/ssh -i ${remote_key}" \
 		--exclude="${EXCLUDE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
 		"${current_path}"
@@ -173,8 +177,8 @@ echo '===== ===== ===== ===== ===== ====='
 echo ''
 echo "STARTED: $(date '+%Y-%m-%d %H:%M:%S')"
 
-rsync_run 'koren-backup@koren2.ru' '/media/koren/server/storage/' "${COPIES_PATH}/storage"
-# rsync_run 'koren-backup@koren2.ru' '~/backup_check' "${COPIES_PATH}/backup_check"
+rsync_run "${REMOTE_SSH}" "${REMOTE_KEY}" '/media/koren/server/storage/' "${COPIES_PATH}/storage"
+# rsync_run "${REMOTE_SSH}" "${REMOTE_KEY}" '~/backup_check' "${COPIES_PATH}/backup_check"
 
 echo ''
 echo '----- ----- ----- ----- -----'
