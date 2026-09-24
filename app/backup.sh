@@ -69,19 +69,6 @@ function rsync_run ()
 
 	echo "${dry_run_short}"
 
-	# ===== ===== ===== ignored ===== ===== =====
-
-	echo ''
-	echo '[ignored]'
-
-	mkdir -p "${date_image_path}"
-
-	local ignored
-	ignored=$(get_ignored "${remote_ssh}" "${remote_key}" "${external_path}")
-
-	echo "${ignored}" > "${date_path}/ignored.txt"
-	echo "${ignored}"
-
 	# ===== ===== ===== sync ===== ===== =====
 
 	echo ''
@@ -92,7 +79,19 @@ function rsync_run ()
 		"${remote_ssh}:${external_path}" \
 		"${latest_image_path}"
 
+	mkdir -p "${date_image_path}"
 	cp -al "${latest_image_path}/." "${date_image_path}"
+
+	# ===== ===== ===== ignored ===== ===== =====
+
+	echo ''
+	echo '[ignored]'
+
+	local ignored
+	ignored=$(get_ignored "${remote_ssh}" "${remote_key}" "${external_path}")
+
+	echo "${ignored}" > "${date_path}/ignored.txt"
+	echo "${ignored}"
 
 	# ===== ===== ===== rsnapshot-diff ===== ===== =====
 
