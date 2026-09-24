@@ -39,12 +39,6 @@ function rsync_run ()
 	echo "external_path: ${external_path}"
 	echo "internal_path: ${internal_path}"
 
-	# ===== ===== ===== deleting old backups ===== ===== =====
-
-	echo ''
-	echo '[deleting old backups]'
-	find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "latest" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv
-
 	# ===== ===== ===== dry-run ===== ===== =====
 
 	echo ''
@@ -139,6 +133,12 @@ function rsync_run ()
 		echo "previous_path = ${previous_path}"
 		echo "max_name_bytes = ${MAX_NAME_BYTES}"
 	} | tee "${date_path}/config.ini"
+
+	# ===== ===== ===== deleting old backups ===== ===== =====
+
+	echo ''
+	echo '[deleting old backups]'
+	find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "latest" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv
 }
 
 echo ''
