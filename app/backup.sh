@@ -8,31 +8,14 @@ cd "${ROOT_PATH}" || exit 1
 
 
 MAX_NAME_BYTES=256 # ext4 держит имя до 255 байт включительно, режем только то, что длиннее
-EXCLUDE_PATTERNS="$(printf '?%.0s' $(seq 1 ${MAX_NAME_BYTES}))*"
+IGNORE_PATTERNS="$(printf '?%.0s' $(seq 1 ${MAX_NAME_BYTES}))*"
 COPIES_PATH='copies'
 SHELF_LIFE=180 # срок хранения
 REMOTE_SSH='koren-backup@koren2.ru'
 REMOTE_KEY='/home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru'
 
 source "${APP_PATH}/get_changes.sh"
-
-function get_excluded ()
-{
-	local remote_ssh="$1" # удаленный ssh
-	local remote_key="$2" # ключ ssh
-	local external_path="$3" # внешний путь
-
-	/usr/bin/ssh -i "${remote_key}" "${remote_ssh}" \
-		"find ${external_path} -printf '%P\n' | \
-		LC_ALL=C awk -F'/' '{
-			for(i=1;i<=NF;i++) {
-				if(length(\$i) >= ${MAX_NAME_BYTES}) {
-					print length(\$i) \" байт => \" \$0
-					break
-				}
-			}
-		}'"
-}
+source "${APP_PATH}/get_ignored.sh"
 
 function rsync_run ()
 {
@@ -68,7 +51,7 @@ function rsync_run ()
 	local dry_run
 	dry_run=$(rsync --dry-run --itemize-changes --archive --delete --numeric-ids --delete-excluded \
 		--rsh="/usr/bin/ssh -i ${remote_key}" \
-		--exclude="${EXCLUDE_PATTERNS}" \
+		--exclude="${IGNORE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
 		"${current_path}" 2>&1) # 2>&1 перенаправляет ошибки в переменную, чтобы dry_run не был пустым при падении
 
@@ -90,16 +73,16 @@ function rsync_run ()
 
 	echo "${dry_run_short}"
 
-	# ===== ===== ===== excluded ===== ===== =====
+	# ===== ===== ===== ignored ===== ===== =====
 
 	echo ''
-	echo '[excluded]'
+	echo '[ignored]'
 
-	local excluded
-	excluded=$(get_excluded "${remote_ssh}" "${remote_key}" "${external_path}")
+	local ignored
+	ignored=$(get_ignored "${remote_ssh}" "${remote_key}" "${external_path}")
 
-	echo "${excluded}" > "${named_path}.excluded"
-	echo "${excluded}"
+	echo "${ignored}" > "${named_path}.ignored"
+	echo "${ignored}"
 
 	# ===== ===== ===== sync ===== ===== =====
 
@@ -107,7 +90,7 @@ function rsync_run ()
 	echo '[rsync]'
 	rsync --stats --archive --delete --numeric-ids --delete-excluded \
 		--rsh="/usr/bin/ssh -i ${remote_key}" \
-		--exclude="${EXCLUDE_PATTERNS}" \
+		--exclude="${IGNORE_PATTERNS}" \
 		"${remote_ssh}:${external_path}" \
 		"${current_path}"
 
