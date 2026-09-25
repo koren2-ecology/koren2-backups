@@ -47,6 +47,7 @@ function rsync_run ()
 	echo '[rsync]'
 
 	local stats
+	# --human-readable дважды — не опечатка: один раз — единицы по 1000 (kB), два — по 1024 (KiB)
 	stats=$(rsync --stats --human-readable --human-readable --archive --delete --numeric-ids --delete-excluded \
 		--rsh="/usr/bin/ssh -i ${remote_key}" \
 		--exclude="${IGNORE_PATTERNS}" \
