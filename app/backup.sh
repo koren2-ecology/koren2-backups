@@ -10,7 +10,7 @@ cd "${ROOT_PATH}" || exit 1
 MAX_NAME_BYTES=256 # ext4 держит имя до 255 байт включительно, режем только то, что длиннее
 IGNORE_PATTERNS="$(printf '?%.0s' $(seq 1 ${MAX_NAME_BYTES}))*"
 COPIES_PATH='copies'
-STAMP_FILE="${COPIES_PATH}/latest/date_last_backup.txt"
+STAMP_FILE='date_last_backup.txt'
 SHELF_LIFE=180 # срок хранения
 REMOTE_SSH='koren-backup@koren2.ru'
 REMOTE_KEY='/home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru'
@@ -25,7 +25,8 @@ function rsync_run ()
 	local external_path="$3" # внешний путь
 	local internal_path="$4" # внутренний путь
 
-	local latest_image_path="${COPIES_PATH}/latest/image"
+	local latest_path="${internal_path}/latest"
+	local latest_image_path="${latest_path}/image"
 	local date time
 	read -r date time <<< "$(date '+%F %T')"
 	local date_path="${internal_path}/${date}_${time//:/-}"
@@ -57,7 +58,7 @@ function rsync_run ()
 	echo "${stats}"
 
 	if [[ ${rsync_status} -eq 0 ]]; then
-		echo "${date}" > "${STAMP_FILE}"
+		echo "${date}" > "${latest_path}/${STAMP_FILE}"
 		echo "date_last_backup: ${date}"
 	else
 		echo "ERROR: rsync failed with exit code ${rsync_status}!" >&2

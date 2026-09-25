@@ -1,6 +1,6 @@
 
 + путь до копии: `/mnt/backup/copies/{NAME}/{DATE}/image/{DATA}`
-+ пример пути: `/mnt/backup/copies/latest/image/БУНКЕР`
++ пример пути: `/mnt/backup/copies/storage/latest/image/БУНКЕР`
 + структура каталогов: [structure.md](structure.md)
 
 ### Возможности

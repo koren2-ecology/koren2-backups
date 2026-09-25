@@ -10,16 +10,16 @@ backup/
 │   ├── get_ignored.sh
 │   └── wakealarm.sh
 ├── copies/
-│   ├── <storage>/                  источник, сейчас один — storage
-│   │   └── <date>/                 снимок, имя — время запуска %Y-%m-%d_%H-%M-%S
-│   │       ├── image/              сама копия: жёсткие ссылки на latest/image
-│   │       ├── ignored.txt         что не скопировано из-за длины имени
-│   │       ├── changed.diff        изменения против предыдущего снимка: + / M / -
-│   │       ├── rsnapshot.diff      сырой вывод rsnapshot-diff
-│   │       └── config.ini          дата и время, источник, ключ, предыдущий снимок, порог длины имени
-│   └── latest/
-│       ├── image/                  актуальная копия, в неё пишет rsync
-│       └── date_last_backup.txt    дата последней успешной синхронизации image/
+│   └── <storage>/                  источник, сейчас один — storage
+│       ├── <date>/                 снимок, имя — время запуска %Y-%m-%d_%H-%M-%S
+│       │   ├── image/              сама копия: жёсткие ссылки на latest/image
+│       │   ├── ignored.txt         что не скопировано из-за длины имени
+│       │   ├── changed.diff        изменения против предыдущего снимка: + / M / -
+│       │   ├── rsnapshot.diff      сырой вывод rsnapshot-diff
+│       │   └── config.ini          дата и время, источник, ключ, предыдущий снимок, порог длины имени
+│       └── latest/
+│           ├── image/              актуальная копия, в неё пишет rsync
+│           └── date_last_backup.txt    дата последней успешной синхронизации image/
 ├── docs/
 │   ├── README.md
 │   └── structure.md
