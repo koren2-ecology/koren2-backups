@@ -39,9 +39,7 @@ function rsync_run ()
 	echo ''
 	echo '----- ----- ----- ----- -----'
 	echo ''
-	echo "remote_ssh: ${remote_ssh}"
-	echo "external_path: ${external_path}"
-	echo "internal_path: ${internal_path}"
+	echo "${remote_ssh}:${external_path} → ${internal_path}"
 
 	# ===== ===== ===== sync ===== ===== =====
 
@@ -59,26 +57,27 @@ function rsync_run ()
 	local rsync_status=$?
 
 	echo "${stats}"
+	echo ''
 
+	# итоговые строки выровнены табами под ширину 8: короткие ключи — два таба, date_last_backup — один
 	if [[ ${rsync_status} -eq 0 ]]; then
 		echo "${date}" > "${latest_path}/${STAMP_FILE}"
-		echo "date_last_backup: ${date}"
+		printf 'date_last_backup:\t%s\n' "${date}"
 	else
 		echo "ERROR: rsync failed with exit code ${rsync_status}!" >&2
 	fi
 
 	if ! grep -qE '^Number of (created|deleted|regular files transferred): [1-9]' <<< "${stats}"; then
-		echo 'no changes'
+		printf 'snapshot:\t\t%s\n' 'no changes'
 		return
 	fi
 
 	mkdir -p "${date_image_path}"
 	cp -al "${latest_image_path}/." "${date_image_path}"
 
-	# ===== ===== ===== ignored ===== ===== =====
+	printf 'snapshot:\t\t%s\n' "${date_path##*/}"
 
-	echo ''
-	echo '[ignored]'
+	# ===== ===== ===== ignored ===== ===== =====
 
 	local ignored
 	ignored=$(get_ignored "${remote_ssh}" "${remote_key}" "${external_path}")
@@ -88,43 +87,38 @@ function rsync_run ()
 	# ссылались на старый, сохраняют свой список. Запись поверх переписала бы его во всех сразу.
 	if [[ "${ignored}" == "$(cat "${latest_ignored_path}" 2>/dev/null)" ]];
 	then
-		echo 'no changes'
+		printf 'ignored:\t\t%s\n' 'no changes'
 	else
 		rm -f "${latest_ignored_path}"
 		echo "${ignored}" > "${latest_ignored_path}"
-		echo "changed ($(grep -c . <<< "${ignored}"))"
+		printf 'ignored:\t\tchanged (%s)\n' "$(grep -c . <<< "${ignored}")"
 	fi
 
 	ln "${latest_ignored_path}" "${date_path}/${IGNORED_FILE}"
 
 	# ===== ===== ===== rsnapshot-diff ===== ===== =====
 
-	echo ''
-	echo '[rsnapshot-diff]'
-
 	local previous_path
 	previous_path=$(find "${internal_path}" -mindepth 1 -maxdepth 1 -type d -name '????-??-??_??-??-??' ! -path "${date_path}" | sort | tail -n 1)
 
 	if [[ -n "${previous_path}" ]];
 	then
-		echo "previous_path: ${previous_path}"
-		echo "date_path: ${date_path}"
-
 		local previous_image_path="${previous_path}/image"
 
 		local rsnapshot_diff
 		rsnapshot_diff=$(rsnapshot-diff -v "${previous_image_path}" "${date_image_path}")
 
+		local changes
+		changes=$(get_changes "${rsnapshot_diff}")
+
 		echo "${rsnapshot_diff}" > "${date_path}/rsnapshot.diff"
-		get_changes "${rsnapshot_diff}" > "${date_path}/changed.diff"
+		echo "${changes}" > "${date_path}/changed.diff"
+		printf 'changes:\t\t+ %s, M %s, - %s\n' "$(grep -c '^+ ' <<< "${changes}")" "$(grep -c '^M ' <<< "${changes}")" "$(grep -c '^- ' <<< "${changes}")"
 	else
-		echo '-- empty --'
+		printf 'changes:\t\t%s\n' 'first snapshot'
 	fi
 
 	# ===== ===== ===== config ===== ===== =====
-
-	echo ''
-	echo '[config]'
 
 	{
 		echo '[backup]'
@@ -135,13 +129,14 @@ function rsync_run ()
 		echo "external_path = ${external_path}"
 		echo "previous_path = ${previous_path}"
 		echo "max_name_bytes = ${MAX_NAME_BYTES}"
-	} | tee "${date_path}/config.ini"
+	} > "${date_path}/config.ini"
 
 	# ===== ===== ===== deleting old backups ===== ===== =====
 
-	echo ''
-	echo '[deleting old backups]'
-	find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "latest" -mtime "+${SHELF_LIFE}" -prune -print0 | xargs -0 rm -rfv
+	local deleted
+	deleted=$(find "${internal_path}" -mindepth 1 -maxdepth 1 ! -name "latest" -mtime "+${SHELF_LIFE}" -prune -printf '%f\n' -exec rm -rf {} + | paste -sd ' ')
+
+	printf 'deleted:\t\t%s\n' "${deleted:-none}"
 }
 
 echo ''
