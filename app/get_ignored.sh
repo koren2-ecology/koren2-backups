@@ -11,8 +11,8 @@ function get_ignored ()
 	/usr/bin/ssh -i "${remote_key}" "${remote_ssh}" \
 		"find ${external_path} -printf '%P\n' | \
 		LC_ALL=C awk -F'/' '{
-			for(i=1;i<=NF;i++) {
-				if(length(\$i) >= ${MAX_NAME_BYTES}) {
+			for (i = 1; i <= NF; i++) {
+				if (length(\$i) >= ${MAX_NAME_BYTES}) {
 					print length(\$i) \" байт => \" \$0
 					break
 				}
