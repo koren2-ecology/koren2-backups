@@ -63,8 +63,19 @@ source app/backup.sh >> "logs/$(date +%Y-%m-%d_%H-%M-%S).log" 2>&1
 
 echo 'Копирование завершено.'
 
+# ===== ===== ===== выключение ===== ===== =====
+
+source app/get_users_online.sh
+
 if [[ ${POWEROFF} == 'yes' ]];
 then
-	echo 'Выключение.'
-	systemctl poweroff --no-block
+	USERS_ONLINE=$(get_users_online)
+
+	if [[ -n ${USERS_ONLINE} ]];
+	then
+		echo "Выключение отменено, в системе работают: ${USERS_ONLINE}."
+	else
+		echo 'Выключение.'
+		systemctl poweroff --no-block
+	fi
 fi

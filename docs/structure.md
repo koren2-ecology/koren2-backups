@@ -8,6 +8,7 @@ backup/
 │   ├── backup.sh
 │   ├── get_changes.sh
 │   ├── get_ignored.sh
+│   ├── get_users_online.sh
 │   └── wakealarm.sh
 ├── copies/
 │   └── <storage>/                  источник, сейчас один — storage
