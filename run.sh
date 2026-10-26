@@ -5,6 +5,33 @@ cd "$(dirname "$(readlink -f "$0")")" || exit 1
 LOCK_FILE='/run/koren2_backup.lock'
 
 
+# ===== ===== ===== аргументы ===== ===== =====
+
+FORCED='no'
+POWEROFF='no'
+
+for argument in "$@";
+do
+	case "${argument}" in
+
+		--force)
+			FORCED='yes'
+			;;
+
+		--poweroff)
+			POWEROFF='yes'
+			;;
+
+		*)
+			echo "Неизвестный аргумент: ${argument}" >&2
+			echo 'Допустимые: --force    — копировать сейчас, без проверки часа' >&2
+			echo '            --poweroff — выключить машину после копирования' >&2
+			exit 1
+			;;
+
+	esac
+done
+
 # ===== ===== ===== процесс ===== ===== =====
 
 exec 9> "${LOCK_FILE}"
@@ -13,15 +40,6 @@ if ! flock -n 9;
 then
 	echo 'Другой экземпляр уже выполняется, выход.'
 	exit 0
-fi
-
-# ===== ===== ===== атрибуты ===== ===== =====
-
-FORCED='no'
-
-if [[ $1 == '--force' ]];
-then
-	FORCED='yes'
 fi
 
 # ===== ===== ===== запуск ===== ===== =====
@@ -43,12 +61,10 @@ mkdir -p logs
 
 source app/backup.sh >> "logs/$(date +%Y-%m-%d_%H-%M-%S).log" 2>&1
 
-if [[ ${FORCED} == 'yes' ]];
+echo 'Копирование завершено.'
+
+if [[ ${POWEROFF} == 'yes' ]];
 then
-	echo 'Ручной запуск: выключение пропущено.'
-	exit 0
+	echo 'Выключение.'
+	systemctl poweroff --no-block
 fi
-
-echo 'Копирование завершено, выключение.'
-
-systemctl poweroff --no-block

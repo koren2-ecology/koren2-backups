@@ -6,7 +6,7 @@ RequiresMountsFor=/mnt/backup
 
 [Service]
 Type=oneshot
-ExecStart=/mnt/backup/run.sh
+ExecStart=/mnt/backup/run.sh --poweroff
 
 [Install]
 WantedBy=multi-user.target
