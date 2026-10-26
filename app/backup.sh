@@ -11,6 +11,7 @@ MAX_NAME_BYTES=256 # ext4 держит имя до 255 байт включите
 IGNORE_PATTERNS="$(printf '?%.0s' $(seq 1 ${MAX_NAME_BYTES}))*"
 COPIES_PATH='copies'
 STAMP_FILE='date_last_backup.txt'
+IGNORED_FILE='ignored.txt'
 SHELF_LIFE=180 # срок хранения
 REMOTE_SSH='koren-backup@koren2.ru'
 REMOTE_KEY='/home/koren-backup/.ssh/id_ed25519_koren-backup_koren2_ru'
@@ -27,6 +28,7 @@ function rsync_run ()
 
 	local latest_path="${internal_path}/latest"
 	local latest_image_path="${latest_path}/image"
+	local latest_ignored_path="${latest_path}/${IGNORED_FILE}"
 	local date time
 	read -r date time <<< "$(date '+%F %T')"
 	local date_path="${internal_path}/${date}_${time//:/-}"
@@ -81,8 +83,19 @@ function rsync_run ()
 	local ignored
 	ignored=$(get_ignored "${remote_ssh}" "${remote_key}" "${external_path}")
 
-	echo "${ignored}" > "${date_path}/ignored.txt"
-	echo "${ignored}"
+	# Пока список прежний, каждый новый снимок получает жёсткую ссылку на один и тот же файл.
+	# Изменился — старый файл удаляем и пишем новый: у него свой inode, а снимки, которые
+	# ссылались на старый, сохраняют свой список. Запись поверх переписала бы его во всех сразу.
+	if [[ "${ignored}" == "$(cat "${latest_ignored_path}" 2>/dev/null)" ]];
+	then
+		echo 'no changes'
+	else
+		rm -f "${latest_ignored_path}"
+		echo "${ignored}" > "${latest_ignored_path}"
+		echo "changed ($(grep -c . <<< "${ignored}"))"
+	fi
+
+	ln "${latest_ignored_path}" "${date_path}/${IGNORED_FILE}"
 
 	# ===== ===== ===== rsnapshot-diff ===== ===== =====
 
